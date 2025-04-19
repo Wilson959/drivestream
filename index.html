@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-900 text-white">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+  <script src="https://cdn.jwplayer.com/libraries/DV3FtaT5.js"></script>
+  <style>
+    #player { aspect-ratio: 16/9; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center px-4 py-8">
+
+  <div class="max-w-2xl w-full bg-gray-800 p-6 rounded-2xl shadow-lg space-y-4">
+    <h1 class="text-3xl font-bold text-center text-green-400">GDrive Streamer v2</h1>
+
+    <input type="text" id="fileInput" placeholder="Enter GDrive File ID or URL" class="w-full px-4 py-2 rounded bg-gray-700 text-white focus:ring-2 focus:ring-blue-500" />
+    
+    <button onclick="startStreaming()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded">
+      Stream & Download
+    </button>
+
+    <div id="result" class="hidden space-y-2 mt-4">
+      <p class="font-medium">Filename: <span id="fileName" class="text-green-300"></span></p>
+      <p class="text-sm text-gray-300">Size: <span id="fileSize"></span></p>
+      <a id="downloadBtn" target="_blank" class="inline-block bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-white">Direct Download</a>
+    </div>
+
+    <div id="player" class="mt-6 rounded-xl overflow-hidden hidden"></div>
+
+    <div class="mt-6">
+      <h2 class="text-lg font-semibold mb-2 text-yellow-400">History</h2>
+      <ul id="historyList" class="space-y-1 text-sm"></ul>
+    </div>
+  </div>
+
+  <script>
+    const apiKey = "AIzaSyAA9ERw-9LZVEohRYtCWka_TQc6oXmvcVU"; // Replace with your API key
+    const dbPromise = idb.openDB('NextGenHistory', 1, {
+      upgrade(db) {
+        db.createObjectStore('history', { keyPath: 'id' });
+      }
+    });
+
+    function extractFileId(input) {
+      const match = input.match(/[-\w]{25,}/);
+      return match ? match[0] : null;
+    }
+
+    async function startStreaming() {
+      const input = document.getElementById("fileInput").value;
+      const fileId = extractFileId(input);
+      if (!fileId) return alert("Invalid File ID or URL!");
+
+      const fileInfoURL = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,size,mimeType&key=${apiKey}`;
+      const directURL = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}&supportsAllDrives=True`;
+
+      try {
+        const res = await fetch(fileInfoURL);
+        const data = await res.json();
+        const fileName = data.name || "Unknown";
+        const size = formatBytes(data.size || 0);
+        const mime = data.mimeType || "";
+
+        document.getElementById("fileName").textContent = fileName;
+        document.getElementById("fileSize").textContent = size;
+        document.getElementById("downloadBtn").href = directURL;
+        document.getElementById("result").classList.remove("hidden");
+
+        // Save to history
+        const db = await dbPromise;
+        await db.put('history', { id: fileId, name: fileName, time: Date.now() });
+        loadHistory();
+
+        // Show preview if video
+        if (mime.startsWith("video/")) {
+          document.getElementById("player").classList.remove("hidden");
+          jwplayer("player").setup({
+            file: directURL,
+            title: fileName,
+            width: "100%",
+            aspectratio: "16:9",
+            autostart: false,
+            mute: false,
+            type:"mp4"
+          });
+        } else {
+          document.getElementById("player").classList.add("hidden");
+        }
+
+      } catch (err) {
+        alert("Failed to fetch file data. Check your File ID and API Key.");
+        console.error(err);
+      }
+    }
+
+    function formatBytes(bytes) {
+      const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(1024));
+      return bytes ? (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i] : "0 Bytes";
+    }
+
+    async function loadHistory() {
+      const db = await dbPromise;
+      const history = await db.getAll('history');
+      const list = document.getElementById("historyList");
+      list.innerHTML = "";
+
+      history.sort((a, b) => b.time - a.time).forEach(entry => {
+        const li = document.createElement("li");
+        li.innerHTML = `<a href="#" onclick="document.getElementById('fileInput').value='${entry.id}'" class="text-blue-400 hover:underline">${entry.name}</a>`;
+        list.appendChild(li);
+      });
+    }
+
+    loadHistory();
+  </script>
+
+</body>
+</html>
