@@ -54,7 +54,7 @@
       if (!fileId) return alert("Invalid File ID or URL!");
 
       const fileInfoURL = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,size,mimeType&key=${apiKey}`;
-      const directURL = `https://gzendc11.codephp5677.workers.dev/?id=${fileId}/`;
+      const directURL = `https://gzendc11.codephp5677.workers.dev/?id=${fileId}/+`;
 
       try {
         const res = await fetch(fileInfoURL);
