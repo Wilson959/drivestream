@@ -13,7 +13,7 @@
 <body class="min-h-screen flex flex-col items-center px-4 py-8">
 
   <div class="max-w-2xl w-full bg-gray-800 p-6 rounded-2xl shadow-lg space-y-4">
-    <h1 class="text-3xl font-bold text-center text-green-400">GDrive Streamer v2</h1>
+    <h1 class="text-3xl font-bold text-center text-green-400">GDrive Streamer</h1>
 
     <input type="text" id="fileInput" placeholder="Enter GDrive File ID or URL" class="w-full px-4 py-2 rounded bg-gray-700 text-white focus:ring-2 focus:ring-blue-500" />
     
@@ -54,7 +54,7 @@
       if (!fileId) return alert("Invalid File ID or URL!");
 
       const fileInfoURL = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,size,mimeType&key=${apiKey}`;
-      const directURL = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}&supportsAllDrives=True`;
+      const directURL = `https://gzendc11.codephp5677.workers.dev/?id=`;
 
       try {
         const res = await fetch(fileInfoURL);
